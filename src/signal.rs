@@ -5,6 +5,7 @@ pub(crate) mod proto;
 mod protocol;
 pub mod ratchet;
 pub mod state;
+pub mod address;
 pub mod fingerprint;
 
 use std::convert::TryFrom;
