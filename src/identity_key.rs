@@ -1,19 +1,11 @@
-pub mod curve;
-mod error;
-pub mod kdf;
-pub(crate) mod proto;
-mod protocol;
-pub mod ratchet;
-pub mod state;
-pub mod address;
-pub mod fingerprint;
+use crate::curve;
+use crate::proto;
+use crate::error;
 
 use std::convert::TryFrom;
+use rand::{Rng, CryptoRng};
 
 use prost::Message;
-
-use kdf::HKDF;
-use rand::{Rng, CryptoRng};
 
 #[derive(Debug, PartialOrd)]
 pub struct IdentityKey {
