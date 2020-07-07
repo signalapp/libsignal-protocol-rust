@@ -1,6 +1,6 @@
 use crate::IdentityKey;
 use crate::proto;
-use crate::error::{SignalError, Result};
+use crate::error::{SignalProtocolError, Result};
 use sha2::{Sha512, digest::Digest};
 use std::fmt;
 use prost::Message;
@@ -24,7 +24,7 @@ impl fmt::Display for DisplayableFingerprint {
 
 fn get_encoded_string(fprint: &[u8]) -> Result<String> {
     if fprint.len() < 30 {
-        return Err(SignalError::InvalidArgument("DisplayableFingerprint created with short encoding".to_string()));
+        return Err(SignalProtocolError::InvalidArgument("DisplayableFingerprint created with short encoding".to_string()));
     }
 
     fn read5_mod_100k(fprint: &[u8]) -> u64 {
@@ -86,12 +86,12 @@ impl ScannableFingerprint {
         let combined = proto::fingerprint::CombinedFingerprints::decode(combined)?;
 
         if combined.version != self.version {
-            return Err(SignalError::FingerprintVersionMismatch);
+            return Err(SignalProtocolError::FingerprintVersionMismatch);
         }
 
         // This follows the Java logic but seems misleading - use InvalidProtobufEncoding instead?
         if combined.local_fingerprint.is_none() || combined.remote_fingerprint.is_none() {
-            return Err(SignalError::FingerprintVersionMismatch);
+            return Err(SignalProtocolError::FingerprintVersionMismatch);
         }
 
         let same1 = combined.local_fingerprint.as_ref().unwrap().content.ct_eq(&self.remote_fingerprint);
@@ -113,7 +113,7 @@ impl Fingerprint {
                        local_id: &[u8],
                        local_key: &IdentityKey) -> Result<Vec<u8>> {
         if iterations <= 1 || iterations > 1000000 {
-            return Err(SignalError::InvalidArgument(format!("Invalid fingerprint iterations {}", iterations)));
+            return Err(SignalProtocolError::InvalidArgument(format!("Invalid fingerprint iterations {}", iterations)));
         }
 
         let fingerprint_version = [0u8, 0u8]; // 0x0000

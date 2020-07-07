@@ -3,10 +3,10 @@ use crate::curve::KeyType;
 use std::error::Error;
 use std::fmt;
 
-pub type Result<T> = std::result::Result<T, SignalError>;
+pub type Result<T> = std::result::Result<T, SignalProtocolError>;
 
 #[derive(Debug, Clone)]
-pub enum SignalError {
+pub enum SignalProtocolError {
     InvalidArgument(String),
 
     ProtobufDecodingError(prost::DecodeError),
@@ -28,75 +28,75 @@ pub enum SignalError {
     MismatchedSignatureLengthForKey(KeyType, usize),
 }
 
-impl Error for SignalError {
+impl Error for SignalProtocolError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            SignalError::ProtobufEncodingError(ref e) => Some(e),
-            SignalError::ProtobufDecodingError(ref e) => Some(e),
+            SignalProtocolError::ProtobufEncodingError(ref e) => Some(e),
+            SignalProtocolError::ProtobufDecodingError(ref e) => Some(e),
             _ => None,
         }
     }
 }
 
-impl From<prost::DecodeError> for SignalError {
-    fn from(value: prost::DecodeError) -> SignalError {
-        SignalError::ProtobufDecodingError(value)
+impl From<prost::DecodeError> for SignalProtocolError {
+    fn from(value: prost::DecodeError) -> SignalProtocolError {
+        SignalProtocolError::ProtobufDecodingError(value)
     }
 }
 
-impl From<prost::EncodeError> for SignalError {
-    fn from(value: prost::EncodeError) -> SignalError {
-        SignalError::ProtobufEncodingError(value)
+impl From<prost::EncodeError> for SignalProtocolError {
+    fn from(value: prost::EncodeError) -> SignalProtocolError {
+        SignalProtocolError::ProtobufEncodingError(value)
     }
 }
 
-impl fmt::Display for SignalError {
+impl fmt::Display for SignalProtocolError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 
         match self {
-            SignalError::ProtobufDecodingError(ref e) => {
+            SignalProtocolError::ProtobufDecodingError(ref e) => {
                 write!(f, "failed to decode protobuf: {}", e)
             }
-            SignalError::ProtobufEncodingError(ref e) => {
+            SignalProtocolError::ProtobufEncodingError(ref e) => {
                 write!(f, "failed to encode protobuf: {}", e)
             }
-            SignalError::InvalidProtobufEncoding => {
+            SignalProtocolError::InvalidProtobufEncoding => {
                 write!(f, "protobuf encoding was invalid")
             }
-            SignalError::InvalidArgument(ref s) => {
+            SignalProtocolError::InvalidArgument(ref s) => {
                 write!(f, "invalid argument: {}", s)
             }
-            SignalError::CiphertextMessageTooShort(size) => {
+            SignalProtocolError::CiphertextMessageTooShort(size) => {
                 write!(f, "ciphertext serialized bytes were too short <{}>", size)
             }
-            SignalError::LegacyCiphertextVersion(version) => {
+            SignalProtocolError::LegacyCiphertextVersion(version) => {
                 write!(f, "ciphertext version was too old <{}>", version)
             }
-            SignalError::UnrecognizedCiphertextVersion(version) => {
+            SignalProtocolError::UnrecognizedCiphertextVersion(version) => {
                 write!(f, "ciphertext version was unrecognized <{}>", version)
             }
-            SignalError::UnrecognizedMessageVersion(message_version) => {
+            SignalProtocolError::UnrecognizedMessageVersion(message_version) => {
                 write!(f, "unrecognized message version <{}>", message_version)
             }
-            SignalError::FingerprintIdentifierMismatch => {
+            SignalProtocolError::FingerprintIdentifierMismatch => {
                 write!(f, "fingerprint identifiers do not match")
             }
-            SignalError::FingerprintVersionMismatch => {
+            SignalProtocolError::FingerprintVersionMismatch => {
                 write!(f, "fingerprint version numbers do not match")
             }
-            SignalError::NoKeyTypeIdentifier => {
+            SignalProtocolError::NoKeyTypeIdentifier => {
                 write!(f, "no key type identifier")
             }
-            SignalError::BadKeyType(t) => {
+            SignalProtocolError::BadKeyType(t) => {
                 write!(f, "bad key type <{:#04x}>", t)
             }
-            SignalError::BadKeyLength(t, l) => {
+            SignalProtocolError::BadKeyLength(t, l) => {
                 write!(f, "bad key length <{}> for key with type <{}>", l, t)
             }
-            SignalError::MismatchedKeyTypes(a, b) => {
+            SignalProtocolError::MismatchedKeyTypes(a, b) => {
                 write!(f, "key types <{}> and <{}> do not match", a, b)
             }
-            SignalError::MismatchedSignatureLengthForKey(t, l) => {
+            SignalProtocolError::MismatchedSignatureLengthForKey(t, l) => {
                 write!(f, "signature length <{}> does not match expected for key with type <{}>", l, t)
             }
         }

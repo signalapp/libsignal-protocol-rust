@@ -1,4 +1,4 @@
-use crate::error::{SignalError, Result};
+use crate::error::{SignalProtocolError, Result};
 use crate::IdentityKey;
 use crate::{curve, proto};
 
@@ -112,7 +112,7 @@ impl SignalMessage {
         message: &[u8],
     ) -> Result<[u8; Self::MAC_LENGTH]> {
         let mut mac = Hmac::<Sha256>::new_varkey(mac_key)
-            .map_err(|_| SignalError::InvalidArgument(format!("Invalid HMAC key length <{}>", mac_key.len())))?;
+            .map_err(|_| SignalProtocolError::InvalidArgument(format!("Invalid HMAC key length <{}>", mac_key.len())))?;
 
         mac.input(sender_identity_key.public_key().serialize().as_ref());
         mac.input(receiver_identity_key.public_key().serialize().as_ref());
@@ -130,19 +130,19 @@ impl AsRef<[u8]> for SignalMessage {
 }
 
 impl TryFrom<&[u8]> for SignalMessage {
-    type Error = SignalError;
+    type Error = SignalProtocolError;
 
     fn try_from(value: &[u8]) -> Result<Self> {
         if value.len() < SignalMessage::MAC_LENGTH + 1 {
-            return Err(SignalError::CiphertextMessageTooShort(value.len()));
+            return Err(SignalProtocolError::CiphertextMessageTooShort(value.len()));
         }
         let message_version = value[0] >> 4;
         let ciphertext_version = value[0] & 0x0F;
         if ciphertext_version < CIPHERTEXT_MESSAGE_CURRENT_VERSION {
-            return Err(SignalError::LegacyCiphertextVersion(ciphertext_version));
+            return Err(SignalProtocolError::LegacyCiphertextVersion(ciphertext_version));
         }
         if ciphertext_version > CIPHERTEXT_MESSAGE_CURRENT_VERSION {
-            return Err(SignalError::UnrecognizedCiphertextVersion(
+            return Err(SignalProtocolError::UnrecognizedCiphertextVersion(
                 ciphertext_version,
             ));
         }
@@ -150,11 +150,11 @@ impl TryFrom<&[u8]> for SignalMessage {
         let proto_structure =
             proto::wire::SignalMessage::decode(&value[1..value.len() - SignalMessage::MAC_LENGTH])?;
 
-        let sender_ratchet_key = proto_structure.ratchet_key.ok_or(SignalError::InvalidProtobufEncoding)?;
+        let sender_ratchet_key = proto_structure.ratchet_key.ok_or(SignalProtocolError::InvalidProtobufEncoding)?;
         let sender_ratchet_key = curve::decode_point(&sender_ratchet_key)?;
-        let counter = proto_structure.counter.ok_or(SignalError::InvalidProtobufEncoding)?;
+        let counter = proto_structure.counter.ok_or(SignalProtocolError::InvalidProtobufEncoding)?;
         let previous_counter = proto_structure.previous_counter.unwrap_or(0);
-        let ciphertext = proto_structure.ciphertext.ok_or(SignalError::InvalidProtobufEncoding)?.into_boxed_slice();
+        let ciphertext = proto_structure.ciphertext.ok_or(SignalProtocolError::InvalidProtobufEncoding)?.into_boxed_slice();
 
         Ok(SignalMessage {
             message_version,
@@ -254,20 +254,20 @@ impl AsRef<[u8]> for PreKeySignalMessage {
 }
 
 impl TryFrom<&[u8]> for PreKeySignalMessage {
-    type Error = SignalError;
+    type Error = SignalProtocolError;
 
     fn try_from(value: &[u8]) -> Result<Self> {
         if value.is_empty() {
-            return Err(SignalError::CiphertextMessageTooShort(value.len()));
+            return Err(SignalProtocolError::CiphertextMessageTooShort(value.len()));
         }
 
         let message_version = value[0] >> 4;
         let ciphertext_version = value[0] & 0x0F;
         if ciphertext_version < CIPHERTEXT_MESSAGE_CURRENT_VERSION {
-            return Err(SignalError::LegacyCiphertextVersion(ciphertext_version));
+            return Err(SignalProtocolError::LegacyCiphertextVersion(ciphertext_version));
         }
         if ciphertext_version > CIPHERTEXT_MESSAGE_CURRENT_VERSION {
-            return Err(SignalError::UnrecognizedCiphertextVersion(
+            return Err(SignalProtocolError::UnrecognizedCiphertextVersion(
                 ciphertext_version,
             ));
         }
@@ -278,7 +278,7 @@ impl TryFrom<&[u8]> for PreKeySignalMessage {
             || proto_structure.identity_key.is_none()
             || proto_structure.message.is_none()
         {
-            return Err(SignalError::InvalidProtobufEncoding);
+            return Err(SignalProtocolError::InvalidProtobufEncoding);
         }
         let base_key = curve::decode_point(proto_structure.base_key.unwrap().as_ref())?;
         Ok(PreKeySignalMessage {
@@ -373,28 +373,28 @@ impl AsRef<[u8]> for SenderKeyMessage {
 }
 
 impl TryFrom<&[u8]> for SenderKeyMessage {
-    type Error = SignalError;
+    type Error = SignalProtocolError;
 
     fn try_from(value: &[u8]) -> Result<Self> {
         if value.len() < 1 + Self::SIGNATURE_LEN {
-            return Err(SignalError::CiphertextMessageTooShort(value.len()));
+            return Err(SignalProtocolError::CiphertextMessageTooShort(value.len()));
         }
         let message_version = value[0] >> 4;
         let ciphertext_version = value[0] & 0x0F;
         if ciphertext_version < CIPHERTEXT_MESSAGE_CURRENT_VERSION {
-            return Err(SignalError::LegacyCiphertextVersion(ciphertext_version));
+            return Err(SignalProtocolError::LegacyCiphertextVersion(ciphertext_version));
         }
         if ciphertext_version > CIPHERTEXT_MESSAGE_CURRENT_VERSION {
-            return Err(SignalError::UnrecognizedCiphertextVersion(
+            return Err(SignalProtocolError::UnrecognizedCiphertextVersion(
                 ciphertext_version,
             ));
         }
         let proto_structure =
             proto::wire::SenderKeyMessage::decode(&value[1..value.len() - Self::SIGNATURE_LEN])?;
 
-        let key_id = proto_structure.id.ok_or(SignalError::InvalidProtobufEncoding)?;
-        let iteration = proto_structure.iteration.ok_or(SignalError::InvalidProtobufEncoding)?;
-        let ciphertext = proto_structure.ciphertext.ok_or(SignalError::InvalidProtobufEncoding)?.into_boxed_slice();
+        let key_id = proto_structure.id.ok_or(SignalProtocolError::InvalidProtobufEncoding)?;
+        let iteration = proto_structure.iteration.ok_or(SignalProtocolError::InvalidProtobufEncoding)?;
+        let ciphertext = proto_structure.ciphertext.ok_or(SignalProtocolError::InvalidProtobufEncoding)?.into_boxed_slice();
 
         Ok(SenderKeyMessage {
             message_version,

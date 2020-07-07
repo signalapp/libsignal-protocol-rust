@@ -9,5 +9,5 @@ mod protocol;
 mod ratchet;
 mod state;
 
-pub use error::SignalError;
+pub use error::SignalProtocolError;
 pub use identity_key::{IdentityKey, IdentityKeyPair};

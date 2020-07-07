@@ -1,4 +1,4 @@
-use crate::error::{SignalError, Result};
+use crate::error::{SignalProtocolError, Result};
 
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
@@ -19,7 +19,7 @@ impl HKDF {
             3 => Ok(HKDF {
                 iteration_start_offset: 1,
             }),
-            _ => Err(SignalError::UnrecognizedMessageVersion(message_version)),
+            _ => Err(SignalProtocolError::UnrecognizedMessageVersion(message_version)),
         }
     }
 

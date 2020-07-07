@@ -1,7 +1,7 @@
 use crate::curve;
 use crate::proto;
 
-use crate::error::{SignalError, Result};
+use crate::error::{SignalProtocolError, Result};
 
 use std::convert::TryFrom;
 use rand::{Rng, CryptoRng};
@@ -31,7 +31,7 @@ impl IdentityKey {
 }
 
 impl TryFrom<&[u8]> for IdentityKey {
-    type Error = SignalError;
+    type Error = SignalProtocolError;
 
     fn try_from(value: &[u8]) -> Result<Self> {
         IdentityKey::decode(value).into()
@@ -109,7 +109,7 @@ impl IdentityKeyPair {
 }
 
 impl TryFrom<&[u8]> for IdentityKeyPair {
-    type Error = SignalError;
+    type Error = SignalProtocolError;
 
     fn try_from(value: &[u8]) -> Result<Self> {
         let structure = proto::storage::IdentityKeyPairStructure::decode(value)?;

@@ -1,6 +1,6 @@
 mod curve25519;
 
-use crate::error::{SignalError, Result};
+use crate::error::{SignalProtocolError, Result};
 
 use std::cmp::Ordering;
 use std::convert::TryFrom;
@@ -30,12 +30,12 @@ impl KeyType {
 }
 
 impl TryFrom<u8> for KeyType {
-    type Error = SignalError;
+    type Error = SignalProtocolError;
 
     fn try_from(x: u8) -> Result<Self> {
         match x {
             0x05u8 => Ok(KeyType::Djb),
-            t => Err(SignalError::BadKeyType(t)),
+            t => Err(SignalProtocolError::BadKeyType(t)),
         }
     }
 }
@@ -102,7 +102,7 @@ pub fn calculate_agreement(
     private_key: &dyn PrivateKey,
 ) -> Result<Box<[u8]>> {
     if public_key.key_type() != private_key.key_type() {
-        return Err(SignalError::MismatchedKeyTypes(
+        return Err(SignalProtocolError::MismatchedKeyTypes(
             public_key.key_type(),
             private_key.key_type(),
         ));
@@ -126,7 +126,7 @@ pub fn verify_signature(
     match public_key.key_type() {
         KeyType::Djb => {
             if signature.len() != 64 {
-                return Err(SignalError::MismatchedSignatureLengthForKey(
+                return Err(SignalProtocolError::MismatchedSignatureLengthForKey(
                     KeyType::Djb,
                     signature.len(),
                 ));
@@ -161,7 +161,7 @@ pub fn decode_point(value: &[u8]) -> Result<Box<dyn PublicKey>> {
 
 fn decode_point_internal(value: &[u8]) -> Result<DjbPublicKey> {
     if value.is_empty() {
-        return Err(SignalError::NoKeyTypeIdentifier);
+        return Err(SignalProtocolError::NoKeyTypeIdentifier);
     }
     let key_type = KeyType::try_from(value[0])?;
     match key_type {
@@ -190,11 +190,11 @@ impl PublicKey for DjbPublicKey {
 }
 
 impl TryFrom<&[u8]> for DjbPublicKey {
-    type Error = SignalError;
+    type Error = SignalProtocolError;
 
     fn try_from(value: &[u8]) -> Result<Self> {
         if value.len() < 32 {
-            Err(SignalError::BadKeyLength(KeyType::Djb, value.len()))
+            Err(SignalProtocolError::BadKeyLength(KeyType::Djb, value.len()))
         } else {
             let mut result = DjbPublicKey([0u8; 32]);
             result.0.copy_from_slice(&value[..32]);
@@ -217,11 +217,11 @@ impl PrivateKey for DjbPrivateKey {
 }
 
 impl TryFrom<&[u8]> for DjbPrivateKey {
-    type Error = SignalError;
+    type Error = SignalProtocolError;
 
     fn try_from(value: &[u8]) -> Result<Self> {
         if value.len() != 32 {
-            Err(SignalError::BadKeyLength(KeyType::Djb, value.len()))
+            Err(SignalProtocolError::BadKeyLength(KeyType::Djb, value.len()))
         } else {
             let mut result = DjbPrivateKey([0u8; 32]);
             result.0.copy_from_slice(value);
