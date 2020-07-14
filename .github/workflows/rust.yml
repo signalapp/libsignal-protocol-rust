@@ -18,5 +18,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build
       run: cargo build --verbose
+    - name: Rustfmt check
+      run: cargo fmt -- --check
     - name: Run tests
       run: cargo test --verbose
